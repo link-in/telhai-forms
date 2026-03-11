@@ -84,6 +84,8 @@ function FieldSwitch({
       return <FormFieldFile config={field} control={control} name={name} />;
     case "rating":
       return <FormFieldRating config={field} control={control} name={name} />;
+    case "divider":
+      return null;
     default: {
       const _: never = field;
       return null;
