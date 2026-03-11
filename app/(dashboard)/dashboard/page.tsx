@@ -41,12 +41,6 @@ export default async function DashboardPage() {
         >
           צפייה בכל הפניות
         </Link>
-        <Link
-          href="/form/sample-form"
-          className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--border)] px-4 py-2 font-medium hover:bg-[var(--accent)]"
-        >
-          פתח טופס דוגמה
-        </Link>
       </div>
     </div>
   );
