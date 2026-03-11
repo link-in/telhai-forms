@@ -33,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             href="/dashboard/submissions"
             className="rounded-md px-3 py-2 text-sm font-medium text-white hover:bg-white/15 transition-colors"
           >
-            שליחות
+            פניות שהתקבלו
           </Link>
         </nav>
 

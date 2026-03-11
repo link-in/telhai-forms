@@ -16,7 +16,7 @@ export default async function SubmissionsPage({ searchParams }: Props) {
   if (error) {
     return (
       <div className="rounded-lg border border-[var(--destructive)] bg-[var(--destructive)]/10 p-4 text-[var(--destructive)]">
-        שגיאה בטעינת השליחות: {error.message}
+        שגיאה בטעינת הפניות: {error.message}
       </div>
     );
   }
@@ -52,11 +52,11 @@ export default async function SubmissionsPage({ searchParams }: Props) {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold">
-            {currentForm ? `שליחות: ${currentForm.name}` : "כל השליחות"}
+            {currentForm ? `פניות שהתקבלו: ${currentForm.name}` : "כל הפניות שהתקבלו"}
           </h1>
           {formId && (
             <Link href="/dashboard/submissions" className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] mt-0.5 inline-block">
-              ← הצג את כל השליחות
+              ← הצג את כל הפניות
             </Link>
           )}
         </div>

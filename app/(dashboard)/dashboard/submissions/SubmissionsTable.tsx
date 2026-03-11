@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
-import { Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, ChevronRight, ChevronLeft } from "lucide-react";
+import * as XLSX from "xlsx";
+import {
+  Search, ArrowUpDown, ArrowUp, ArrowDown,
+  ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Download,
+} from "lucide-react";
 
 export type SubmissionRow = {
   id: string;
@@ -22,9 +25,15 @@ function formatDate(iso: string) {
 function previewData(data: Record<string, unknown>): string {
   const entries = Object.entries(data).filter(([, v]) => v !== null && v !== undefined && v !== "");
   if (!entries.length) return "—";
-  const [key, val] = entries[0];
+  const [, val] = entries[0];
   const str = Array.isArray(val) ? val.join(", ") : String(val);
-  return `${key}: ${str.length > 40 ? str.slice(0, 40) + "…" : str}`;
+  return str.length > 50 ? str.slice(0, 50) + "…" : str;
+}
+
+function formatValue(val: unknown): string {
+  if (val === null || val === undefined || val === "") return "—";
+  if (Array.isArray(val)) return val.join(", ");
+  return String(val);
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -36,18 +45,49 @@ type Props = {
 };
 
 export function SubmissionsTable({ rows, showFormColumn, forms }: Props) {
-  const [search, setSearch]       = useState("");
+  const [search, setSearch]         = useState("");
   const [formFilter, setFormFilter] = useState("all");
-  const [sortKey, setSortKey]     = useState<SortKey>("created_at");
-  const [sortDir, setSortDir]     = useState<SortDir>("desc");
-  const [page, setPage]           = useState(1);
-  const [pageSize, setPageSize]   = useState(10);
+  const [sortKey, setSortKey]       = useState<SortKey>("created_at");
+  const [sortDir, setSortDir]       = useState<SortDir>("desc");
+  const [page, setPage]             = useState(1);
+  const [pageSize, setPageSize]     = useState(10);
+  const [expanded, setExpanded]     = useState<string | null>(null);
+
+  const exportToExcel = (exportRows: SubmissionRow[]) => {
+    if (!exportRows.length) return;
+
+    // איסוף כל מפתחות השדות האפשריים מכל הפניות
+    const allKeys = Array.from(
+      new Set(exportRows.flatMap(r => Object.keys(r.data)))
+    );
+
+    const sheetData = exportRows.map(row => {
+      const base: Record<string, unknown> = {};
+      if (showFormColumn) base["טופס"] = row.form_name;
+      base["תאריך"] = formatDate(row.created_at);
+      for (const key of allKeys) {
+        const val = row.data[key];
+        base[key] = val === undefined || val === null ? "" : formatValue(val);
+      }
+      return base;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(sheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "פניות");
+
+    const date = new Date().toLocaleDateString("he-IL").replace(/\//g, "-");
+    XLSX.writeFile(wb, `פניות-${date}.xlsx`);
+  };
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("desc"); }
     setPage(1);
   };
+
+  const toggleExpand = (id: string) =>
+    setExpanded(prev => (prev === id ? null : id));
 
   const filtered = useMemo(() => {
     let r = rows;
@@ -77,23 +117,22 @@ export function SubmissionsTable({ rows, showFormColumn, forms }: Props) {
 
   const thCls = "px-4 py-3 text-right text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide select-none";
   const thBtn = `${thCls} cursor-pointer hover:text-[var(--foreground)] transition-colors`;
+  const colSpan = showFormColumn ? 4 : 3;
 
   return (
     <div className="space-y-3">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* חיפוש */}
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute top-1/2 -translate-y-1/2 end-3 text-[var(--muted-foreground)]" />
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="חיפוש בשליחות..."
+            placeholder="חיפוש בפניות..."
             className="w-full h-8 rounded-lg border border-[var(--border)] bg-white ps-3 pe-9 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
           />
         </div>
 
-        {/* פילטר טופס */}
         {showFormColumn && forms.length > 1 && (
           <select
             value={formFilter}
@@ -105,7 +144,6 @@ export function SubmissionsTable({ rows, showFormColumn, forms }: Props) {
           </select>
         )}
 
-        {/* שורות לעמוד */}
         <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)] me-auto">
           <span>הצג</span>
           <select
@@ -118,9 +156,7 @@ export function SubmissionsTable({ rows, showFormColumn, forms }: Props) {
           <span>שורות</span>
         </div>
 
-        <span className="text-sm text-[var(--muted-foreground)]">
-          {filtered.length} תוצאות
-        </span>
+        <span className="text-sm text-[var(--muted-foreground)]">{filtered.length} תוצאות</span>
       </div>
 
       {/* טבלה */}
@@ -145,40 +181,89 @@ export function SubmissionsTable({ rows, showFormColumn, forms }: Props) {
                   תצוגה מקדימה <SortIcon k="preview" />
                 </span>
               </th>
-              <th className={thCls}>פעולות</th>
+              <th className={thCls}>פרטים</th>
             </tr>
           </thead>
           <tbody>
             {!paginated.length ? (
               <tr>
-                <td colSpan={showFormColumn ? 4 : 3} className="px-4 py-10 text-center text-[var(--muted-foreground)]">
-                  לא נמצאו שליחות
+                <td colSpan={colSpan} className="px-4 py-10 text-center text-[var(--muted-foreground)]">
+                  לא נמצאו פניות
                 </td>
               </tr>
-            ) : paginated.map((row, i) => (
-              <tr
-                key={row.id}
-                className={`border-b border-[var(--border)] last:border-0 hover:bg-[var(--secondary)]/40 transition-colors ${i % 2 === 0 ? "" : "bg-[var(--muted)]/30"}`}
-              >
-                {showFormColumn && (
-                  <td className="px-4 py-3 font-medium">{row.form_name}</td>
-                )}
-                <td className="px-4 py-3 text-[var(--muted-foreground)] whitespace-nowrap">
-                  {formatDate(row.created_at)}
-                </td>
-                <td className="px-4 py-3 text-[var(--muted-foreground)] max-w-xs">
-                  <span className="truncate block">{previewData(row.data)}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/dashboard/submissions/${row.id}`}
-                    className="inline-flex items-center gap-1 rounded-md bg-[var(--secondary)] px-2.5 py-1 text-xs font-medium text-[var(--telhai-blue)] hover:bg-[var(--secondary)]/70 transition-colors"
+            ) : paginated.map((row, i) => {
+              const isOpen = expanded === row.id;
+              const dataEntries = Object.entries(row.data).filter(([, v]) => v !== null && v !== undefined && v !== "");
+
+              return (
+                <>
+                  {/* שורת סיכום */}
+                  <tr
+                    key={row.id}
+                    onClick={() => toggleExpand(row.id)}
+                    className={`border-b border-[var(--border)] cursor-pointer transition-colors
+                      ${isOpen
+                        ? "bg-[var(--secondary)] border-b-0"
+                        : i % 2 === 0
+                          ? "hover:bg-[var(--secondary)]/40"
+                          : "bg-[var(--muted)]/30 hover:bg-[var(--secondary)]/40"
+                      }`}
                   >
-                    <Eye size={12} /> צפייה
-                  </Link>
-                </td>
-              </tr>
-            ))}
+                    {showFormColumn && (
+                      <td className="px-4 py-3 font-medium">{row.form_name}</td>
+                    )}
+                    <td className="px-4 py-3 text-[var(--muted-foreground)] whitespace-nowrap">
+                      {formatDate(row.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-[var(--muted-foreground)] max-w-xs">
+                      <span className="truncate block">{previewData(row.data)}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleExpand(row.id); }}
+                        className="inline-flex items-center gap-1 rounded-md bg-[var(--secondary)] px-2.5 py-1 text-xs font-medium text-[var(--telhai-blue)] hover:bg-[var(--secondary)]/70 transition-colors"
+                        aria-expanded={isOpen}
+                      >
+                        {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        {isOpen ? "סגור" : "פרטים"}
+                      </button>
+                    </td>
+                  </tr>
+
+                  {/* שורת פירוט – אקורדיון */}
+                  {isOpen && (
+                    <tr key={`${row.id}-detail`} className="border-b border-[var(--border)]">
+                      <td colSpan={colSpan} className="px-0 py-0">
+                        <div className="bg-[var(--secondary)]/50 border-t border-[var(--border)] px-6 py-4">
+                          {/* כותרת */}
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs text-[var(--muted-foreground)]">
+                              {showFormColumn ? `${row.form_name} · ` : ""}{formatDate(row.created_at)}
+                            </p>
+                            <span className="text-xs font-mono text-[var(--muted-foreground)] opacity-60">
+                              #{row.id.slice(0, 8)}
+                            </span>
+                          </div>
+
+                          {/* נתוני הפנייה */}
+                          {dataEntries.length === 0 ? (
+                            <p className="text-sm text-[var(--muted-foreground)]">אין נתונים בפנייה זו.</p>
+                          ) : (
+                            <ul className="flex flex-wrap gap-x-6 gap-y-1">
+                              {dataEntries.map(([key, val]) => (
+                                <li key={key} className="text-sm text-[var(--foreground)] break-words">
+                                  {formatValue(val)}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -224,6 +309,18 @@ export function SubmissionsTable({ rows, showFormColumn, forms }: Props) {
           </div>
         </div>
       )}
+
+      {/* ייצוא */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => exportToExcel(filtered)}
+          disabled={!filtered.length}
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-[var(--telhai-blue)] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+        >
+          <Download size={12} />
+          ייצוא לאקסל
+        </button>
+      </div>
     </div>
   );
 }

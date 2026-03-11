@@ -8,9 +8,9 @@ export function shouldShowField(
   fieldConfig: FieldConfig,
   watchValues: Record<string, unknown>
 ): boolean {
-  const condition = fieldConfig.showWhen;
+  if (fieldConfig.type === "divider") return true;
+  const condition = (fieldConfig as { showWhen?: { field: string; value?: string | number | boolean; oneOf?: (string | number | boolean)[] } }).showWhen;
   if (!condition) return true;
-
   const watchedValue = watchValues[condition.field];
 
   if (condition.value !== undefined) {
@@ -33,8 +33,9 @@ export function buildFormSchema(
   const shape: Record<string, z.ZodTypeAny> = {};
 
   for (const field of formSchema.fields) {
+    if (field.type === "divider") continue;
     const isVisible = visibleFieldNames.includes(field.name);
-    const isRequired = Boolean(field.required) && isVisible;
+    const isRequired = Boolean((field as { required?: boolean }).required) && isVisible;
 
     switch (field.type) {
       case "text":
@@ -83,6 +84,8 @@ export function buildFormSchema(
           ? z.number().min(1, "שדה חובה")
           : z.number().optional();
         break;
+      case "divider":
+        break;
       default: {
         const f = field as FieldConfig;
         shape[f.name] = z.unknown().optional();
@@ -101,6 +104,6 @@ export function getVisibleFieldNames(
   watchValues: Record<string, unknown>
 ): string[] {
   return formSchema.fields
-    .filter((f) => shouldShowField(f, watchValues))
+    .filter((f) => f.type !== "divider" && shouldShowField(f, watchValues))
     .map((f) => f.name);
 }

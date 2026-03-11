@@ -26,11 +26,11 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>שליחות</CardTitle>
+            <CardTitle>פניות שהתקבלו</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{submissionsCount ?? 0}</p>
-            <p className="text-sm text-[var(--muted-foreground)]">סה״כ שליחות</p>
+            <p className="text-sm text-[var(--muted-foreground)]">סה״כ פניות שהתקבלו</p>
           </CardContent>
         </Card>
       </div>
@@ -39,7 +39,7 @@ export default async function DashboardPage() {
           href="/dashboard/submissions"
           className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--telhai-blue)] px-4 py-2 text-white font-medium hover:opacity-90"
         >
-          צפייה בכל השליחות
+          צפייה בכל הפניות
         </Link>
         <Link
           href="/form/sample-form"

@@ -42,7 +42,14 @@ function getDefaultValues(schema: FormSchemaType): Record<string, unknown> {
   return defaults;
 }
 
+function colSpanClass(colSpan?: string): string {
+  if (colSpan === "half")  return "col-span-1";
+  if (colSpan === "third") return "col-span-1";
+  return "col-span-full";
+}
+
 function FieldSwitch({
+
   field,
   control,
   visible,
@@ -124,18 +131,34 @@ export function FormRenderer({
         <CardTitle>{formName}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {formSchema.fields.map((field) => (
-            <FieldSwitch
-              key={field.name}
-              field={field}
-              control={form.control as Control<Record<string, unknown>>}
-              visible={shouldShowField(field, watchValues)}
-            />
-          ))}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "שולח..." : "שליחה"}
-          </Button>
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-6">
+            {formSchema.fields.map((field) => {
+              if (field.type === "divider") {
+                return (
+                  <div key={field.name} className="col-span-full">
+                    <hr className="border-[var(--border)]" />
+                  </div>
+                );
+              }
+              const visible = shouldShowField(field, watchValues);
+              if (!visible) return null;
+              return (
+                <div key={field.name} className={colSpanClass((field as { layout?: { colSpan?: string } }).layout?.colSpan)}>
+                  <FieldSwitch
+                    field={field}
+                    control={form.control as Control<Record<string, unknown>>}
+                    visible
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-6">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "שולח..." : "שליחה"}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Plus } from "lucide-react";
 import { SuccessMessage } from "./SuccessMessage";
 
 function formatDate(iso: string): string {
@@ -35,16 +36,13 @@ export default async function FormsListPage() {
         <h1 className="text-2xl font-bold">טפסים</h1>
         <Link
           href="/dashboard/forms/new"
-          className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--telhai-blue)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--telhai-blue)] hover:text-[var(--telhai-blue-dark)] font-medium transition-colors"
         >
-          טופס חדש
+          <Plus size={14} /> טופס חדש
         </Link>
       </div>
       <Card>
-        <CardHeader>
-          <CardTitle>כל הטפסים</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           {!forms.length ? (
             <p className="text-[var(--muted-foreground)]">אין עדיין טפסים. צור טופס חדש כדי להתחיל.</p>
           ) : (
@@ -85,7 +83,7 @@ export default async function FormsListPage() {
                           href={`/dashboard/submissions?form=${form.id}`}
                           className="text-sm text-[var(--muted-foreground)] hover:underline"
                         >
-                          שליחות
+                          פניות שהתקבלו
                         </Link>
                       </div>
                     </TableCell>

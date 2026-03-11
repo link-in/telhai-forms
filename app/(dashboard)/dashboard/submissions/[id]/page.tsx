@@ -49,7 +49,7 @@ export default async function SubmissionDetailPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">שליחה: {formDisplayName}</h1>
+        <h1 className="text-2xl font-bold">פנייה: {formDisplayName}</h1>
         <Link
           href="/dashboard/submissions"
           className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--border)] px-4 py-2 font-medium hover:bg-[var(--accent)]"
@@ -59,7 +59,7 @@ export default async function SubmissionDetailPage({
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>פרטי השליחה</CardTitle>
+          <CardTitle>פרטי הפנייה</CardTitle>
           <p className="text-sm text-[var(--muted-foreground)]">
             תאריך: {new Date(submission.created_at).toLocaleString("he-IL")}
           </p>

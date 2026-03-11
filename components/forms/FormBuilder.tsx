@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Type, Mail, Phone, Hash, AlignLeft,
   ChevronDown, List, CircleDot, SquareCheck,
   Calendar, Paperclip, Star,
-  Search, CheckSquare,
+  Search, CheckSquare, Pencil, SeparatorHorizontal, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ type FieldTypeDef = {
   value: FieldType;
   label: string;
   icon: React.ReactNode;
-  category: "common" | "text" | "choice" | "advanced";
+  category: "common" | "text" | "choice" | "advanced" | "layout";
 };
 
 const FIELD_DEFS: FieldTypeDef[] = [
@@ -35,9 +35,10 @@ const FIELD_DEFS: FieldTypeDef[] = [
   { value: "radio",       label: "בחירה יחידה",       icon: <CircleDot size={18} />,    category: "choice"   },
   { value: "multiselect", label: "בחירה מרובה",       icon: <List size={18} />,         category: "choice"   },
   { value: "checkbox",    label: "תיבת סימון",        icon: <CheckSquare size={18} />,  category: "choice"   },
-  { value: "date",        label: "תאריך",             icon: <Calendar size={18} />,     category: "advanced" },
-  { value: "file",        label: "העלאת קובץ",        icon: <Paperclip size={18} />,    category: "advanced" },
-  { value: "rating",      label: "דירוג",             icon: <Star size={18} />,         category: "advanced" },
+  { value: "date",        label: "תאריך",             icon: <Calendar size={18} />,              category: "advanced" },
+  { value: "file",        label: "העלאת קובץ",        icon: <Paperclip size={18} />,             category: "advanced" },
+  { value: "rating",      label: "דירוג",             icon: <Star size={18} />,                  category: "advanced" },
+  { value: "divider",     label: "מפריד שורה",        icon: <SeparatorHorizontal size={18} />,   category: "layout"   },
 ];
 
 const CATEGORIES = [
@@ -45,11 +46,14 @@ const CATEGORIES = [
   { key: "text",     label: "טקסט"       },
   { key: "choice",   label: "בחירה"      },
   { key: "advanced", label: "מתקדם"      },
+  { key: "layout",   label: "פריסה"      },
 ] as const;
 
 /* ─────────────────────────────────────────
    טיפוס שדה בבונה
 ───────────────────────────────────────── */
+type FieldColSpan = "full" | "half" | "third";
+
 type BuilderField = {
   tempId: string;
   type: FieldType;
@@ -63,6 +67,7 @@ type BuilderField = {
   showWhenOneOf?: string;
   min?: number;
   max?: number;
+  colSpan?: FieldColSpan;
   conditionOpen?: boolean;
   expanded?: boolean;
 };
@@ -79,33 +84,42 @@ function generateRandomFieldName(existing: string[]): string {
 }
 
 function fieldConfigToBuilder(f: FieldConfig, tempId: string): BuilderField {
+  if (f.type === "divider") {
+    return { tempId, type: "divider", name: f.name, label: "", required: false, options: [], colSpan: "full", expanded: false };
+  }
   const options =
     "options" in f && Array.isArray(f.options)
       ? f.options.map((o) => ({ value: String(o.value), label: String(o.label) }))
       : [];
-  const showWhen = f.showWhen;
+  const showWhen = (f as { showWhen?: { field: string; value?: string | number | boolean; oneOf?: (string | number | boolean)[] } }).showWhen;
   return {
     tempId,
     type: f.type,
     name: f.name,
-    label: f.label,
-    placeholder: f.placeholder,
-    required: Boolean(f.required),
+    label: (f as { label?: string }).label ?? "",
+    placeholder: (f as { placeholder?: string }).placeholder,
+    required: Boolean((f as { required?: boolean }).required),
     options,
     showWhenField: showWhen?.field,
     showWhenValue: showWhen?.value !== undefined ? String(showWhen.value) : undefined,
     showWhenOneOf: showWhen?.oneOf?.length ? showWhen.oneOf.map(String).join(", ") : undefined,
-    min: "min" in f ? f.min : undefined,
-    max: "max" in f ? f.max : undefined,
+    min: "min" in f ? (f as { min?: number }).min : undefined,
+    max: "max" in f ? (f as { max?: number }).max : undefined,
+    colSpan: ((f as { layout?: { colSpan?: FieldColSpan } }).layout?.colSpan ?? "full") as FieldColSpan,
     conditionOpen: Boolean(showWhen?.field),
     expanded: false,
   };
 }
 
 function builderToFieldConfig(b: BuilderField, allFieldNames: string[]): FieldConfig | null {
+  if (b.type === "divider") {
+    const name = b.name.trim() || `divider_${b.tempId.slice(-6)}`;
+    return { name, type: "divider" };
+  }
   const name = b.name.trim().replace(/\s+/g, "_");
   if (!name || !b.label.trim()) return null;
-  const base = { name, type: b.type, label: b.label.trim(), placeholder: b.placeholder?.trim() || undefined, required: b.required };
+  const layout = b.colSpan && b.colSpan !== "full" ? { colSpan: b.colSpan } : undefined;
+  const base = { name, type: b.type, label: b.label.trim(), placeholder: b.placeholder?.trim() || undefined, required: b.required, layout };
   let showWhen: { field: string; value?: string; oneOf?: string[] } | undefined;
   if (b.showWhenField && allFieldNames.includes(b.showWhenField)) {
     if (b.showWhenOneOf?.trim()) {
@@ -229,6 +243,49 @@ type FormBuilderProps = {
 };
 
 /* ─────────────────────────────────────────
+   מפתח שדה – נסתר עד ללחיצה
+───────────────────────────────────────── */
+function FieldKeyEditor({
+  tempId, value, onChange,
+}: { tempId: string; value: string; onChange: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const open = () => {
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  return (
+    <div className="flex items-center gap-2 min-h-[28px]">
+      {editing ? (
+        <div className="flex-1 flex items-center gap-2">
+          <Input
+            ref={inputRef}
+            id={`key-${tempId}`}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onBlur={() => setEditing(false)}
+            onKeyDown={(e) => e.key === "Enter" && setEditing(false)}
+            placeholder="מפתח_שדה"
+            className="h-7 text-xs font-mono"
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={open}
+          className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+        >
+          <Pencil size={11} />
+          <span>מפתח שדה</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
    רכיב ראשי: FormBuilder
 ───────────────────────────────────────── */
 export function FormBuilder({ mode, formId, initialName, initialSlug, initialFields, initialSuccessMessage, saveFormAction }: FormBuilderProps) {
@@ -299,12 +356,13 @@ export function FormBuilder({ mode, formId, initialName, initialSlug, initialFie
     if (!slugTrim) { setError("יש להזין כתובת (slug) לטופס."); return; }
     if (!fields.length) { setError("יש להוסיף לפחות שדה אחד."); return; }
 
-    const fieldNames = fields.map((f) => f.name.trim().replace(/\s+/g, "_")).filter(Boolean);
+    const nonDividers = fields.filter((f) => f.type !== "divider");
+    const fieldNames = nonDividers.map((f) => f.name.trim().replace(/\s+/g, "_")).filter(Boolean);
     if (fieldNames.length !== new Set(fieldNames).size) { setError("כל שדה חייב לקבל מפתח ייחודי."); return; }
 
     const configs: FieldConfig[] = [];
     for (const f of fields) { const c = builderToFieldConfig(f, fieldNames); if (c) configs.push(c); }
-    if (!configs.length) { setError("יש להוסיף לפחות שדה אחד עם תווית ומפתח."); return; }
+    if (!configs.filter((c) => c.type !== "divider").length) { setError("יש להוסיף לפחות שדה אחד עם תווית ומפתח."); return; }
 
     setSaving(true);
     try {
@@ -376,6 +434,31 @@ export function FormBuilder({ mode, formId, initialName, initialSlug, initialFie
             const def = FIELD_DEFS.find((d) => d.value === field.type);
             const isExpanded = Boolean(field.expanded);
 
+            /* ─── מפריד שורה ─── */
+            if (field.type === "divider") {
+              return (
+                <div key={field.tempId} className="flex items-center gap-2 group">
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button type="button" onClick={() => moveField(index, -1)} disabled={index === 0}
+                      className="rounded px-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-30 text-[10px]">▲</button>
+                    <button type="button" onClick={() => moveField(index, 1)} disabled={index === fields.length - 1}
+                      className="rounded px-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-30 text-[10px]">▼</button>
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <div className="flex-1 border-t-2 border-dashed border-[var(--border)]" />
+                    <span className="text-xs text-[var(--muted-foreground)] flex items-center gap-1 shrink-0">
+                      <SeparatorHorizontal size={13} /> מפריד שורה
+                    </span>
+                    <div className="flex-1 border-t-2 border-dashed border-[var(--border)]" />
+                  </div>
+                  <button type="button" onClick={() => removeField(field.tempId)}
+                    className="shrink-0 rounded p-1 text-[var(--muted-foreground)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={field.tempId}
@@ -437,14 +520,37 @@ export function FormBuilder({ mode, formId, initialName, initialSlug, initialFie
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>מפתח שדה (אנגלית, ייחודי)</Label>
-                      <Input value={field.name} onChange={(e) => updateField(field.tempId, { name: e.target.value })} placeholder="נוצר אוטומטית" />
-                    </div>
+                    {/* שורת הגדרות – חובה + מפתח + רוחב */}
+                    <div className="flex items-center justify-between gap-3 flex-wrap rounded-md bg-[var(--muted)] px-3 py-2">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Checkbox id={`req-${field.tempId}`} checked={field.required} onCheckedChange={(v) => updateField(field.tempId, { required: Boolean(v) })} />
+                        <Label htmlFor={`req-${field.tempId}`} className="font-normal text-xs">שדה חובה</Label>
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      <Checkbox id={`req-${field.tempId}`} checked={field.required} onCheckedChange={(v) => updateField(field.tempId, { required: Boolean(v) })} />
-                      <Label htmlFor={`req-${field.tempId}`} className="font-normal">שדה חובה</Label>
+                      {/* רוחב שדה */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-[var(--muted-foreground)]">רוחב:</span>
+                        {(["full", "half", "third"] as FieldColSpan[]).map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => updateField(field.tempId, { colSpan: opt })}
+                            className={`px-2 py-0.5 rounded text-xs border transition-colors ${
+                              (field.colSpan ?? "full") === opt
+                                ? "bg-[var(--telhai-blue)] text-white border-[var(--telhai-blue)]"
+                                : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--telhai-blue)] hover:text-[var(--telhai-blue)]"
+                            }`}
+                          >
+                            {opt === "full" ? "מלא" : opt === "half" ? "חצי" : "שליש"}
+                          </button>
+                        ))}
+                      </div>
+
+                      <FieldKeyEditor
+                        tempId={field.tempId}
+                        value={field.name}
+                        onChange={(val) => updateField(field.tempId, { name: val })}
+                      />
                     </div>
 
                     {(field.type === "number" || field.type === "rating") && (

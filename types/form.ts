@@ -14,7 +14,8 @@ export type FieldType =
   | "checkbox"
   | "date"
   | "file"
-  | "rating";
+  | "rating"
+  | "divider";
 
 export interface ShowWhenCondition {
   field: string;
@@ -27,6 +28,12 @@ export interface FieldOption {
   label: string;
 }
 
+export type FieldColSpan = "full" | "half" | "third";
+
+export interface FieldLayout {
+  colSpan?: FieldColSpan;   // רוחב: מלא / חצי / שליש
+}
+
 export interface BaseFieldConfig {
   name: string;
   type: FieldType;
@@ -34,6 +41,7 @@ export interface BaseFieldConfig {
   placeholder?: string;
   required?: boolean;
   showWhen?: ShowWhenCondition;
+  layout?: FieldLayout;
 }
 
 export interface SelectLikeFieldConfig extends BaseFieldConfig {
@@ -69,6 +77,11 @@ export interface RatingFieldConfig extends BaseFieldConfig {
   max?: number;
 }
 
+export interface DividerFieldConfig {
+  name: string;
+  type: "divider";
+}
+
 export type FieldConfig =
   | TextFieldConfig
   | NumberFieldConfig
@@ -76,7 +89,8 @@ export type FieldConfig =
   | CheckboxFieldConfig
   | DateFieldConfig
   | FileFieldConfig
-  | RatingFieldConfig;
+  | RatingFieldConfig
+  | DividerFieldConfig;
 
 export interface FormSchema {
   fields: FieldConfig[];
