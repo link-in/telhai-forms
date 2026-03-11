@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --telhai-green:        #8DC63F;
+  --telhai-green-dark:   #6ea030;
+  --telhai-green-light:  #a8d861;
+  --telhai-blue:         #003D7A;
+  --telhai-blue-dark:    #002a57;
+  --telhai-blue-light:   #1a5a9e;
+  --telhai-sky:          #00AEEF;
+  --telhai-bg:           #ffffff;
+  --telhai-bg-muted:     #F4F4F4;
+  --telhai-text:         #333333;
+  --telhai-footer-bg:    #5a9428;
+  --telhai-footer-text:  #f0f9e0;
+
+  --background:          #ffffff;
+  --foreground:          #333333;
+  --card:                #ffffff;
+  --card-foreground:     #333333;
+  --primary:             #8DC63F;
+  --primary-foreground:  #ffffff;
+  --secondary:           #f1f8e8;
+  --secondary-foreground: #6ea030;
+  --muted:               #F4F4F4;
+  --muted-foreground:    #6b7280;
+  --accent:              #003D7A;
+  --accent-foreground:   #ffffff;
+  --destructive:         #c53030;
+  --destructive-foreground: #fafafa;
+  --border:              #d4e8b8;
+  --input:               #d4e8b8;
+  --ring:                #8DC63F;
+  --radius:              0.5rem;
+
+  --chart-1: #003D7A;
+  --chart-2: #8DC63F;
+  --chart-3: #00AEEF;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background:          #0d1f0a;
+    --foreground:          #e8f5e0;
+    --card:                #122b0d;
+    --card-foreground:     #e8f5e0;
+    --primary:             #a8d861;
+    --primary-foreground:  #ffffff;
+    --secondary:           #1a3d0f;
+    --secondary-foreground: #e8f5e0;
+    --muted:               #0f2a0a;
+    --muted-foreground:    #8ab878;
+    --accent:              #1a5a9e;
+    --accent-foreground:   #ffffff;
+    --border:              #2a5a1a;
+    --input:               #2a5a1a;
+    --ring:                #8DC63F;
+  }
+}
+
+@theme inline {
+  --color-background:            var(--background);
+  --color-foreground:            var(--foreground);
+  --color-card:                  var(--card);
+  --color-card-foreground:       var(--card-foreground);
+  --color-primary:               var(--primary);
+  --color-primary-foreground:    var(--primary-foreground);
+  --color-secondary:             var(--secondary);
+  --color-secondary-foreground:  var(--secondary-foreground);
+  --color-muted:                 var(--muted);
+  --color-muted-foreground:      var(--muted-foreground);
+  --color-accent:                var(--accent);
+  --color-accent-foreground:     var(--accent-foreground);
+  --color-destructive:           var(--destructive);
+  --color-border:                var(--border);
+  --color-input:                 var(--input);
+  --color-ring:                  var(--ring);
+  --font-sans:                   var(--font-primary);
+  --radius-sm:                   calc(var(--radius) - 2px);
+  --radius-md:                   var(--radius);
+  --radius-lg:                   calc(var(--radius) + 2px);
+}
+
+body {
+  font-family: var(--font-primary), "Arial Hebrew", Arial, sans-serif;
+  font-size: 14px;
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}

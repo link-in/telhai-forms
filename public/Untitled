@@ -1,0 +1,6 @@
+| function formatDate(iso: string): string {
+> 22 |   return new Date(iso).toLocaleDateString("he-IL", {
+     |                        ^
+  23 |     dateStyle: "short",
+  24 |     timeStyle: "short",
+  25 |   });
