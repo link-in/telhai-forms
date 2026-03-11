@@ -12,13 +12,7 @@ export default function Home() {
           href="/dashboard"
           className="rounded-md bg-[var(--telhai-blue)] text-white px-4 py-2 font-medium hover:opacity-90"
         >
-          דשבורד
-        </Link>
-        <Link
-          href="/form/sample-form"
-          className="rounded-md border border-[var(--border)] px-4 py-2 font-medium hover:bg-[var(--accent)]"
-        >
-          טופס דוגמה
+          כניסה למערכת
         </Link>
       </div>
     </main>
