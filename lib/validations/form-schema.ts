@@ -84,8 +84,6 @@ export function buildFormSchema(
           ? z.number().min(1, "שדה חובה")
           : z.number().optional();
         break;
-      case "divider":
-        break;
       default: {
         const f = field as FieldConfig;
         shape[f.name] = z.unknown().optional();
